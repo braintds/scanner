@@ -193,7 +193,6 @@ namespace scanner
                 }
             }
 
-            var a = 5;
             foreach (KeyValuePair<string, string> pair in parts)
             {
                 answer += pair.Key.PadRight(5) + " " + pair.Value + '\n';
