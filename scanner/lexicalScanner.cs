@@ -8,54 +8,85 @@ using System.Threading.Tasks;
 
 namespace scanner
 {
-    static class lexicalScanner
+    public static class LexicalScanner
     {
         private enum Codes
         {
-            ERRORcode = -1,
-            identifierCode = 1,
-            integerConstCode,
-            doubleConstCode,
-            equalCode,          //.EQ.
-            notEqualCode,       //.NE.
-            greaterThanCode,    //.GT.
-            greaterEqualCode,   //.GE.
-            lessThanCode,       //.LT.
-            lessEqualCode,      //.LE.
-            logicalNotCode,     //.NOT.
-            logicalAndCode,     //.AND.
-            logicalOrCode,      //.OR.
-            LeftParenthesis,    // (
-            RightParenthesis,   // )
+            ErrorCode = -1,
+            IdentifierCode = 1,         // {a-z, A_Z, _}*
+            IntegerConstCode,           // {0-9}*
+            DoubleConstCode,            // {0-9}*{.} & {0-9}*
+            EqualCode,                  // .EQ.
+            NotEqualCode,               // .NE.
+            GreaterThanCode,            // .GT.
+            GreaterEqualCode,           // .GE.
+            LessThanCode,               // .LT.
+            LessEqualCode,              // .LE.
+            LogicalNotCode,             // .NOT.
+            LogicalAndCode,             // .AND.
+            LogicalOrCode,              // .OR.
+            LeftParenthesisCode,        // (
+            RightParenthesisCode,       // )
+            ArithmPlusCode,             // +
+            ArithmMinusCode,            // - 
+            ArithmMultiplicationCode,   // *
+            ArithmDivisionCode,         // "/"
         }
 
-        private static Codes isOperator(string text)
+        private static Codes IsArithmOperator(string text)
         {
-            if (text == "") return Codes.ERRORcode;
-
-            switch (text.ToUpperInvariant())
+            if (text.Length > 1)
             {
-                case ".EQ.": return Codes.equalCode;
-                case ".NE.": return Codes.notEqualCode;
-                case ".GT.": return Codes.greaterThanCode;
-                case ".GE.": return Codes.greaterEqualCode;
-                case ".LT.": return Codes.lessThanCode;
-                case ".LE.": return Codes.lessEqualCode;
-                case ".NOT.": return Codes.logicalNotCode;
-                case ".AND.": return Codes.logicalAndCode;
-                case ".OR.": return Codes.logicalOrCode;
-                default: return Codes.ERRORcode;
+                return Codes.ErrorCode;
+            }
+
+            switch (text)
+            {
+                case "+": return Codes.ArithmPlusCode;
+                case "-": return Codes.ArithmMinusCode;
+                case "*": return Codes.ArithmMultiplicationCode;
+                case "/": return Codes.ArithmDivisionCode;
+                default: return Codes.ErrorCode;
+
             }
         }
 
-        private static Codes isNumber(string text)
+        private static Codes IsOperator(string text)
         {
-            if (text == "") return Codes.ERRORcode;
+            if (text == "")
+            {
+                return Codes.ErrorCode;
+            }
+
+            switch (text.ToUpperInvariant())
+            {
+                case ".EQ.": return Codes.EqualCode;
+                case ".NE.": return Codes.NotEqualCode;
+                case ".GT.": return Codes.GreaterThanCode;
+                case ".GE.": return Codes.GreaterEqualCode;
+                case ".LT.": return Codes.LessThanCode;
+                case ".LE.": return Codes.LessEqualCode;
+                case ".NOT.": return Codes.LogicalNotCode;
+                case ".AND.": return Codes.LogicalAndCode;
+                case ".OR.": return Codes.LogicalOrCode;
+                default: return Codes.ErrorCode;
+            }
+        }
+
+        private static Codes IsNumber(string text)
+        {
+            if (text == "")
+            {
+                return Codes.ErrorCode;
+            }
 
             int integerConst = 0;
-            if (int.TryParse(text, out integerConst))
-                return Codes.integerConstCode;
 
+            if (int.TryParse(text, out integerConst))
+            {
+                return Codes.IntegerConstCode;
+            }
+            // Проверяет первое число на то что это цифра. \ Checks if the first number is a digit
             if (Char.IsDigit(text[0]))
             {
                 int i = 0;
@@ -65,75 +96,101 @@ namespace scanner
                 {
                     if (text[i] == '.')
                     {
-                        countDot++;
+                        countDot++;         // Точка должна быть только одна \ There must be only one point
                     }
                     i++;
                 }
 
                 if (countDot == 1)
-                    return Codes.doubleConstCode;
+                {
+                    return Codes.DoubleConstCode;
+                }
             }
-            return 0;
+            // Если TryParse вернул false или в строке больше одной точки.
+            // \ If TryParse returned false or there is more than one dot in the string.
+            return Codes.ErrorCode;
         }
 
-        private static Codes isIdentifier(string text)
+        private static Codes IsIdentifier(string text)
         {
-            if (text == "") return Codes.ERRORcode;
+            if (text == "")
+            {
+                return Codes.ErrorCode;
+            }
 
             if (!Char.IsLetter(text[0]))
-                return Codes.ERRORcode;
+            {
+                return Codes.ErrorCode;
+            }
             else
+            {
                 foreach (char c in text)
+                {
                     if (c != '_' && !Char.IsDigit(c) && !Char.IsLetter(c))
-                        return Codes.ERRORcode;
-
-            return Codes.identifierCode;
+                    {
+                        return Codes.ErrorCode;
+                    }
+                }
+            }
+            return Codes.IdentifierCode;
         }
 
-        private static Codes isBracket(string text)
+        private static Codes IsBracket(string text)
         {
-            if (text == "") return Codes.ERRORcode;
+            if (text == "")
+            {
+                return Codes.ErrorCode;
+            }
+
             switch (text)
             {
-                case "(": return Codes.LeftParenthesis;
-                case ")": return Codes.RightParenthesis;
-                default: return Codes.ERRORcode;
+                case "(": return Codes.LeftParenthesisCode;
+                case ")": return Codes.RightParenthesisCode;
+                default: return Codes.ErrorCode;
             }
         }
 
-        private static char getNext(string text, int currentPosition)
+        private static char GetNext(string text, int currentPosition)
         {
             return text[currentPosition + 1];
         }
 
-        public static string scanner(string inputString)
+        public static string Scanner(string inputString)
         {
             int i = 0;
             string answer = "";
             var parts = new Dictionary<string, string>();
             string subString = "";
+
             while (i < inputString.Length)
             {
                 char c = inputString[i];
-                if (c == ')' || c == '(') // это скобки
+
+                // Это скобки. \ It's brackets.
+                if (c == ')' || c == '(')
                 {
                     i++;
-                    parts.Add(i.ToString() + " " + c, "Code " + Convert.ToInt32(isBracket(c.ToString())));
+                    parts.Add(i.ToString() + " " + c, "Code " + Convert.ToInt32(IsBracket(c.ToString())));
                     continue;
                 }
 
-                if (c == '.') // может быть оператором
+                // Может быть оператором. \ Can be an operator.
+                if (c == '.')
                 {
                     subString = "";
                     int start = i + 1;
                     int countDot = 0;
-                    while (i < inputString.Length && (char.IsLetter(inputString[i]) || inputString[i] == '.'))
+
+                    while ((i < inputString.Length) && (char.IsLetter(inputString[i]) || inputString[i] == '.'))
                     {
                         if (countDot < 2)
                         {
                             subString += inputString[i];
+
                             if (inputString[i] == '.')
+                            {
                                 countDot++;
+                            }
                         }
                         else
                         {
@@ -144,56 +201,66 @@ namespace scanner
 
                     if (subString.EndsWith("."))
                     {
-                        parts.Add(start.ToString() + ":" + (i).ToString() + " " + subString, "Code " + Convert.ToInt32(isOperator(subString)));
+                        parts.Add(start.ToString() + ":" + (i).ToString() + " " + subString, "Code " + Convert.ToInt32(IsOperator(subString)));
                     }
+
+                    subString = "";
                 }
 
-                if (Char.IsLetter(c)) //может быть идентификатором
+                // Может быть идентификатором. \ Can be an identifier.
+                if (Char.IsLetter(c))
                 {
                     subString = "";
                     int start = i + 1;
 
-                    while (i < inputString.Length && (Char.IsLetter(inputString[i]) || Char.IsDigit(inputString[i])))
+                    while ((i < inputString.Length) && (Char.IsLetter(inputString[i]) || Char.IsDigit(inputString[i])))
                     {
                         subString += inputString[i];
                         i++;
                     }
-                    parts.Add(start.ToString() + ":" + (i).ToString() + " " + subString, "Code " + Convert.ToInt32(isIdentifier(subString)));
-                    
+                    parts.Add(start.ToString() + ":" + (i).ToString() + " " + subString, "Code " + Convert.ToInt32(IsIdentifier(subString)));
+
                 }
 
-                if (Char.IsDigit(c)) //может быть числом
+                // Может быть числом. \ Can be a number.
+                if (Char.IsDigit(c))
                 {
+                    subString = "";
                     int start = i + 1;
 
-                    while (i < inputString.Length && (Char.IsDigit(inputString[i]) || inputString[i] == '.'))
+                    while ((i < inputString.Length) && (Char.IsDigit(inputString[i]) || inputString[i] == '.'))
                     {
                         subString += inputString[i];
                         i++;
                     }
 
-                    if (Char.IsLetter(getNext(inputString, i)))
+                    if ((i < inputString.Length) && Char.IsLetter(GetNext(inputString, i)))
                     {
                         subString = subString.Remove(subString.LastIndexOf('.'), 1);
                         i--;
                     }
-                       
 
                     if (subString.EndsWith("."))
                     {
-                        parts.Add(start.ToString() + ":" + (i).ToString() + " " + subString, "Code " + Convert.ToInt32(Codes.ERRORcode));
-                        
+                        parts.Add(start.ToString() + ":" + (i).ToString() + " " + subString, "Code " + Convert.ToInt32(Codes.ErrorCode));
                     }
                     else
                     {
-                        i--;
-                        parts.Add(start.ToString() + ":" + (i).ToString() + " " + subString, "Code " + Convert.ToInt32(isNumber(subString)));
+                        parts.Add(start.ToString() + ":" + (i).ToString() + " " + subString, "Code " + Convert.ToInt32(IsNumber(subString)));
                     }
-                    
+
+                    subString = "";
+                }
+
+                // Это арифметический оператор. \ It is an arithmetic operator.
+                if (c == '+' || c == '-' || c == '*' || c == '/')
+                {
+                    i++;
+                    parts.Add(i.ToString() + " " + c, "Code " + Convert.ToInt32(IsArithmOperator(c.ToString())));
+                    continue;
                 }
             }
 
-            var a = 5;
             foreach (KeyValuePair<string, string> pair in parts)
             {
                 answer += pair.Key.PadRight(5) + " " + pair.Value + '\n';

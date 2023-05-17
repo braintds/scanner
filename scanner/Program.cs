@@ -15,15 +15,16 @@ namespace scanner
             return Regex.Replace(str, chars, String.Empty);
         }
     }
+
     class Program
     {
         static void Main(string[] args)
         {
             List<Char> listToRemove = new List<Char>() { ' ', '\n', '\t' };
 
-            var expression = "(5. .AND. y) .OR. .NOT. z";
+            var expression = "(5.5 + 7 .AND. y + a * Z) .OR. .NOT. z / a - 4";
             Console.WriteLine(expression.Filter(listToRemove));
-            Console.WriteLine(lexicalScanner.scanner(expression.Filter(listToRemove)));
+            Console.WriteLine(LexicalScanner.Scanner(expression.Filter(listToRemove)));
 
             Console.ReadKey();
         }
